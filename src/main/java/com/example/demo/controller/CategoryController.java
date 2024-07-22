@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.CategoryDTO;
 import com.example.demo.entity.CategoryEntity;
+import com.example.demo.entity.ProductEntity;
 import com.example.demo.repository.CategoryRepository;
 import com.example.demo.service.CategoryService;
 import jakarta.validation.Valid;
@@ -51,14 +52,23 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDTO categoryDTO) {
-        categoryService.updateCategory(id, categoryDTO);
-        return ResponseEntity.ok("Update category successfully");
+    public ResponseEntity<?> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDTO categoryDTO) {
+        try {
+            CategoryEntity updatedCategory = categoryService.updateCategory(id, categoryDTO);
+            return ResponseEntity.ok(updatedCategory);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteCategory(@PathVariable Long id) {
-        categoryService.deleteCategory(id);
-        return ResponseEntity.ok("deleteCategory" + id);
+        try {
+            categoryService.deleteCategory(id);
+            return ResponseEntity.ok("deleted product " + id + "successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
     }
 }
