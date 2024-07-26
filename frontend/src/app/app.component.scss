@@ -1,0 +1,20 @@
+// Import Bootstrap functions and variables
+@import "node_modules/bootstrap/scss/functions";
+@import "node_modules/bootstrap/scss/variables";
+
+// Define the custom primary color
+$indigo: #6610f2;
+
+$theme-colors: (
+  "primary": $purple,
+  "secondary": $secondary,
+  "success": $success,
+  "info": $info,
+  "warning": $warning,
+  "danger": $danger,
+  "light": $light,
+  "dark": $dark,
+);
+
+// Import Bootstrap to apply the theme colors
+@import "node_modules/bootstrap/scss/bootstrap";
