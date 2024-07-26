@@ -34,7 +34,7 @@ import java.util.UUID;
 import net.datafaker.Faker;
 
 @RestController
-@RequestMapping("api/v1/products")
+@RequestMapping("${api.prefix}/products")
 @RequiredArgsConstructor
 public class ProductController {
     private final ProductService productService;
