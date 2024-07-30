@@ -13,20 +13,14 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CategoryService implements ICategoryService {
-
     private final CategoryRepository categoryRepository;
     @Override
-    public CategoryEntity createCatetory(CategoryDTO categoryDTO) {
+    public CategoryEntity createCategory(CategoryDTO categoryDTO) {
         CategoryEntity newCategory = CategoryEntity
                 .builder()
                 .name(categoryDTO.getName())
                 .build();
         return categoryRepository.save(newCategory);
-    }
-
-    @Override
-    public List<CategoryEntity> getAllCategories() {
-        return categoryRepository.findAll();
     }
 
     @Override
@@ -36,7 +30,14 @@ public class CategoryService implements ICategoryService {
     }
 
     @Override
-    public CategoryEntity updateCategory(long categoryId, CategoryDTO categoryDTO) {
+    public List<CategoryEntity> getAllCategories() {
+
+        return categoryRepository.findAll();
+    }
+
+    @Override
+    public CategoryEntity updateCategory(long categoryId,
+                                   CategoryDTO categoryDTO) {
         CategoryEntity existingCategory = getCategoryById(categoryId);
         existingCategory.setName(categoryDTO.getName());
         categoryRepository.save(existingCategory);

@@ -47,7 +47,7 @@ public class CategoryController {
                     .toList();
             return ResponseEntity.badRequest().body(errorMessages);
         }
-        categoryService.createCatetory(categoryDTO);
+        categoryService.createCategory(categoryDTO);
         return ResponseEntity.ok("Insert category successfully");
     }
 

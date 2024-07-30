@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.components.LocalizationUtils;
 import com.example.demo.dto.ProductDTO;
 import com.example.demo.dto.ProductImageDTO;
 import com.example.demo.entity.ProductEntity;
@@ -7,8 +8,10 @@ import com.example.demo.entity.ProductImageEntity;
 import com.example.demo.responses.ProductListResponse;
 import com.example.demo.responses.ProductResponse;
 import com.example.demo.service.ProductService;
+import com.example.demo.utils.MessageKeys;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -38,18 +41,17 @@ import net.datafaker.Faker;
 @RequiredArgsConstructor
 public class ProductController {
     private final ProductService productService;
+    private final LocalizationUtils localizationUtils;
 
     @GetMapping("")
     public ResponseEntity<ProductListResponse> getProducts(
             @RequestParam("page") int page,
             @RequestParam("limit") int limit
     ) {
-        // Tạo Pageable từ thông tin trang và giới hạn
         PageRequest pageRequest = PageRequest.of(
                 page, limit,
                 Sort.by("createdAt").descending());
         Page<ProductResponse> productPage = productService.getAllProducts(pageRequest);
-        // Lấy tổng số trang
         int totalPages = productPage.getTotalPages();
         List<ProductResponse> products = productPage.getContent();
         return ResponseEntity.ok(ProductListResponse
@@ -77,17 +79,12 @@ public class ProductController {
             throw new IOException("Invalid file format");
         }
         String filename = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
-        // Thêm UUID vào trước tên file để đảm bảo tên file là duy nhất
         String uniqueFilename = UUID.randomUUID().toString() + "_" + filename;
-        // Đường dẫn đến thư mục mà bạn muốn lưu file
         Path uploadDir = Paths.get("uploads");
-        // Kiểm tra và tạo thư mục nếu nó không tồn tại
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
         }
-        // Đường dẫn đầy đủ đến file
         Path destination = Paths.get(uploadDir.toString(), uniqueFilename);
-        // Sao chép file vào thư mục đích
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
         return uniqueFilename;
     }
@@ -103,27 +100,29 @@ public class ProductController {
     public ResponseEntity<?> uploadImages(
             @PathVariable("id") Long productId,
             @ModelAttribute("files") List<MultipartFile> files
-    ) {
+    ){
         try {
             ProductEntity existingProduct = productService.getProductById(productId);
             files = files == null ? new ArrayList<MultipartFile>() : files;
-            if (files.size() > ProductImageEntity.MAXIMUM_IMAGES_PER_PRODUCT) {
-                return ResponseEntity.badRequest().body("You can only upload maximum 5 images.");
+            if(files.size() > ProductImageEntity.MAXIMUM_IMAGES_PER_PRODUCT) {
+                return ResponseEntity.badRequest().body(localizationUtils
+                        .getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_MAX_5));
             }
             List<ProductImageEntity> productImages = new ArrayList<>();
             for (MultipartFile file : files) {
-                if (file.getSize() == 0) {
+                if(file.getSize() == 0) {
                     continue;
                 }
                 // Kiểm tra kích thước file và định dạng
-                if (file.getSize() > 10 * 1024 * 1024) { // Kích thước > 10MB
+                if(file.getSize() > 10 * 1024 * 1024) { // Kích thước > 10MB
                     return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                            .body("File is too large! Maximum size is 10MB");
+                            .body(localizationUtils
+                                    .getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_LARGE));
                 }
                 String contentType = file.getContentType();
-                if (contentType == null || !contentType.startsWith("image/")) {
+                if(contentType == null || !contentType.startsWith("image/")) {
                     return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-                            .body("File must be an image");
+                            .body(localizationUtils.getLocalizedMessage(MessageKeys.UPLOAD_IMAGES_FILE_MUST_BE_IMAGE));
                 }
                 // Lưu file và cập nhật thumbnail trong DTO
                 String filename = storeFile(file); // Thay thế hàm này với code của bạn để lưu file
@@ -131,7 +130,6 @@ public class ProductController {
                 ProductImageEntity productImage = productService.createProductImage(
                         existingProduct.getId(),
                         ProductImageDTO.builder()
-                                .productId(existingProduct.getId())
                                 .imageUrl(filename)
                                 .build()
                 );
@@ -140,6 +138,23 @@ public class ProductController {
             return ResponseEntity.ok().body(productImages);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @GetMapping("/images/{imageName}")
+    public ResponseEntity<?> viewImage(@PathVariable String imageName) {
+        try {
+            Path imagePath = Paths.get("uploads/"+imageName);
+            UrlResource resource = new UrlResource(imagePath.toUri());
+
+            if (resource.exists()) {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(resource);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
     }
 
@@ -165,7 +180,7 @@ public class ProductController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProduct(
-            @PathVariable Long id,
+            @PathVariable long id,
             @RequestBody ProductDTO productDTO
     ) {
         try {
@@ -177,7 +192,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteProduct(@PathVariable Long id) {
+    public ResponseEntity<String> deleteProduct(@PathVariable long id) {
         try {
             productService.deleteProduct(id);
             return ResponseEntity.ok(String.format("Product with id = %d deleted successfully", id));
